@@ -48,7 +48,7 @@ class MonotonicBinning(BaseEstimator, TransformerMixin):
     """
     
     # Initialize the parameters for the function
-    def __init__(self, feature_names='all', max_bins=20, force_bins=3, 
+    def __init__(self, feature_names='all', max_bins=20, force_bins=3,
                  cardinality_cutoff=5, prefix=None, custom_binning=None):
         self.feature_names = feature_names
         self.max_bins = max_bins
@@ -139,19 +139,19 @@ class MonotonicBinning(BaseEstimator, TransformerMixin):
     def train(self, X, y):
         fitted = self.check_cardinality(X) #check the unique value and evaluate if fit is needed or not
         mapping = {} #dictionary mapping for the current feature
-        
         #Create the bins for each numeric variables
         if fitted: #fit is required
             r = 0
             max_bins = self.max_bins
             force_bins = self.force_bins
+            print(X.name)
 
             """Calculate spearman correlation for the distribution identified. If the distribution is not monotonic, 
             reduce bins and reiterate. Proceed until either one of the following happens,
             a) Monotonic relationship is identified between a feature X and y is identified (np.abs(r) =1)
             b) max_bins = 0, in which case the code could not identify a monotonic relationship
             """
-            while np.abs(r) < 1 and max_bins > 0:
+            while (np.abs(r) <(1 - 10e-6)) and (max_bins > 0):
                 try:
                     ser, bins = pd.qcut(X, max_bins, retbins=True, duplicates = 'drop')
                     bins = [-np.inf] + list(bins[1:-1]) + [np.inf]
@@ -162,14 +162,13 @@ class MonotonicBinning(BaseEstimator, TransformerMixin):
                     max_bins = max_bins - 1
                 except Exception as e:
                     max_bins = max_bins - 1
-
             """
             Execute this block when monotonic relationship is not identified by spearman technique. 
             We still want our code to produce bins.
             """
             if len(bins_X_grouped) == 1:
-                #bins = algos.quantile(X, np.linspace(0, 1, force_bins)) #creates a new binnning based on forced bins
                 bins = X.quantile(np.linspace(0, 1, force_bins)).values #creates a new binnning based on forced bins
+                bins = [-np.inf] + list(bins[1:-1]) + [np.inf]
                 if len(np.unique(bins)) == 2:
                     bins = np.insert(bins, 0, 1)
                     bins[1] = bins[1]-(bins[1]/2)
